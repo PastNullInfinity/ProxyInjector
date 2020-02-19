@@ -11,6 +11,7 @@ type Config struct {
 	GatekeeperImage   string   `yaml:"gatekeeper-image"`
 	ClientId          string   `yaml:"client-id"`
 	ClientSecret      string   `yaml:"client-secret"`
+	ClientSecretKey   string   `yaml:"client-secret-key"`
 	DiscoveryUrl      string   `yaml:"discovery-url"`
 	EnableDefaultDeny string   `yaml:"enable-default-deny"`
 	Listen            string   `yaml:"listen"`

@@ -22,6 +22,15 @@ type ResourceCreatedHandler struct {
 	Resource interface{} `json:"resource"`
 }
 
+type EnvFromSource struct {
+	SecretRef SecretEnvSource `json:"secretRef"`
+}
+
+type SecretEnvSource struct {
+	// The Secret to select from.
+	Name string `json:"name"`
+}
+
 type patch struct {
 	Spec struct {
 		Template struct {
@@ -33,9 +42,10 @@ type patch struct {
 }
 
 type Container struct {
-	Name  string   `json:"name"`
-	Image string   `json:"image"`
-	Args  []string `json:"args"`
+	Name    string          `json:"name"`
+	Image   string          `json:"image"`
+	Args    []string        `json:"args"`
+	EnvFrom []EnvFromSource `json:"envFrom"`
 }
 
 // Handle processes the newly created resource
@@ -70,6 +80,7 @@ func (r ResourceCreatedHandler) Handle(conf config.Config, resourceType string) 
 			logger.Infof("Updating resource ... %s", name)
 
 			containerArgs := getConfigArgs(conf, annotations)
+			envArgs := getEnvArgs(conf, annotations)
 
 			for _, arg := range constants.KeycloakArgs {
 				if ContainsKey(annotations, arg) {
@@ -90,7 +101,7 @@ func (r ResourceCreatedHandler) Handle(conf config.Config, resourceType string) 
 			}
 
 			if err == nil {
-				payloadBytes, err3 := getPatch(containerArgs, annotations[constants.ImageNameAnnotation])
+				payloadBytes, err3 := getPatch(containerArgs, envArgs, annotations[constants.ImageNameAnnotation])
 
 				if err3 == nil {
 
@@ -150,13 +161,14 @@ func ContainsKey(list map[string]string, word string) bool {
 	return false
 }
 
-func getPatch(containerArgs []string, image string) ([]byte, error) {
+func getPatch(containerArgs []string, envArgs []EnvFromSource, image string) ([]byte, error) {
 
 	payload := &patch{}
 	payload.Spec.Template.Spec.Containers = []Container{{
-		Name:  "proxy",
-		Image: image,
-		Args:  containerArgs,
+		Name:    "proxy",
+		Image:   image,
+		Args:    containerArgs,
+		EnvFrom: envArgs,
 	}}
 
 	return json.Marshal(payload)
@@ -239,4 +251,29 @@ func getConfigArgs(config config.Config, annotations map[string]string) []string
 	}
 
 	return configArgs
+}
+
+func getEnvArgs(config config.Config, annotations map[string]string) []EnvFromSource {
+
+	if annotations[constants.SecretNameAnnotation] != "" {
+
+		logger.Infof("Found secret-name %s , adding to deployment...", annotations[constants.SecretNameAnnotation])
+		// SecretRef := SecretEnvSource{
+		// 	Name: annotations[constants.SecretNameAnnotation+"secret-name"],
+		// }
+
+		envArgs := []EnvFromSource{{
+			SecretRef: SecretEnvSource{
+				Name: annotations[constants.SecretNameAnnotation],
+			}},
+		}
+
+		js, _ := json.Marshal(envArgs)
+
+		logger.Infof("%s", js)
+
+		return envArgs
+
+	}
+	return nil
 }

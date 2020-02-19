@@ -6,13 +6,13 @@ BUILDER ?= proxyinjector-builder
 BINARY ?= ProxyInjector
 DOCKER_IMAGE ?= stakater/proxyinjector
 # Default value "dev"
-DOCKER_TAG ?= 0.0.1
+DOCKER_TAG ?= 0.0.2
 REPOSITORY = ${DOCKER_IMAGE}:${DOCKER_TAG}
 
 VERSION=$(shell cat .version)
 BUILD=
 
-GOCMD = go
+GOCMD = /usr/lib/go-1.13/bin/go
 GOFLAGS ?= $(GOFLAGS:)
 LDFLAGS =
 
