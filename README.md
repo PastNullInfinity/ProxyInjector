@@ -52,8 +52,9 @@ Note 1: See the section `Using Secrets` below if you do not want to use ConfigMa
   
     | Key                                        | Description                                                                                                                                       |
     |--------------------------------------------|--------------------------------------------------------|
-    | authproxy.stakater.com/enabled             | (true/false, default=false) Enables Keycloak gatekeeper configuration |
-    | authproxy.stakater.com/source-service-name | Name of service that needs to be reconfigured to connect to the proxy. instead of the service directly routing to the app container, it will now route to the proxy sidecar instead. |
+    | authproxy.stakater.com/enabled             | (**REQUIRED** true/false, default=false) Enables Keycloak gatekeeper configuration |
+    | authproxy.stakater.com/secret-name         | (**REQUIRED**) name for the secret to inject as a `envFrom` object                       |
+    | authproxy.stakater.com/source-service-name | (**REQUIRED**) Name of service that needs to be reconfigured to connect to the proxy. instead of the service directly routing to the app container, it will now route to the proxy sidecar instead. |
     | authproxy.stakater.com/target-port         | (default=80) the port on the pod where the proxy sidecar (keycloak gatekeeper) will be listening. If not specified, the default value of 80 is used. This port should match the `listen` configuration |
     | authproxy.stakater.com/resources           | String of resources separated by `&` e.g. (`uri=/*|white-listed=true&uri=/css/*|white-listed=false|methods=GET,POST`)
 
@@ -69,14 +70,31 @@ To use secrets:
   
   2. Set `proxyinjector.mount` equals to `"secret"` and pass the data in the data section at the bottom.
   
-  3. Run `helm template . > proxyinjector.yaml`
+  3. Deploy the secret with `helm install`
   
-  4. Deploy using the `Deploying` section below.
 
 To use existing Secrets:
 
   1. Set `proxyinjector.mount` equals to `"secret"`
   2. set `proxyinjector.existingSecret` equals to `EXISTING_SECRET_NAME`
+
+#### Passing Client id and Secret
+  1. Create a Secret in the namespace in which the targets of ProxyInjector are deployed. The secret **MUST** be set this way:
+
+  ```yaml
+  apiVersion: v1
+  data:
+  CLIENT_ID: <base64 of client id>
+  CLIENT_SECRET: <base64 of client secret>
+  kind: Secret
+  metadata:
+    name: <name of the secret>
+    namespace: <target namespace>
+  type: Opaque
+  ```
+
+  2. Set in the annotations of the target deployment `authproxy.stakater.com/secret-name` as the name of the secret you just made. The proxyInjector will add an `envFrom` section in the injected deployment.
+      (Be aware that this will work only if you also edit the Keycloak image in order to accept CLIENT_ID and CLIENT_SECRET as env vars.)
 
 ### Using ConfigMap
 
